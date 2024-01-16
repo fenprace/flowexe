@@ -1,0 +1,100 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Node } from 'reactflow';
+import { v4 } from 'uuid';
+import { TASKS } from './task';
+
+export interface FlowConstant {
+  id: string;
+  value: string;
+}
+
+export interface FlowTask {
+  id: string;
+  task: any;
+  input: { id: string; index: number }[];
+}
+
+export interface Flow {
+  constants: FlowConstant[];
+  tasks: FlowTask[];
+}
+
+const constants = [{ id: v4(), value: 'Hello, world!' }];
+const tasks = [];
+tasks.push({ id: v4(), task: TASKS.toUpperCase, input: [{ id: constants[0].id, index: 0 }] });
+tasks.push({ id: v4(), task: TASKS.toLowerCase, input: [{ id: tasks[0].id, index: 0 }] });
+tasks.push({ id: v4(), task: TASKS.alert, input: [{ id: tasks[1].id, index: 0 }] });
+
+export const INITIAL_FLOW = {
+  constants,
+  tasks,
+};
+
+export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
+  const nodes = [];
+  const edges = [];
+  let nextX = 0;
+  let nextY = 0;
+
+  for (const constant of flow.constants) {
+    const prevNode = prevNodes?.find((n: Node) => n.id === constant.id);
+    nodes.push({
+      id: constant.id,
+      position: prevNode ? prevNode.position : { x: nextX, y: nextY },
+      type: 'constant',
+      data: {
+        id: constant.id,
+        value: constant.value,
+      },
+    });
+
+    nextX = nextX + 300;
+  }
+
+  nextX = 0;
+  nextY = 100;
+  for (const task of flow.tasks) {
+    for (let i = 0; i < task.input.length; i++) {
+      const input = task.input[i];
+      const constant = flow.constants.find(c => c.id === input.id);
+      if (constant) {
+        edges.push({
+          id: `${input.id}-${task.id}`,
+          source: constant.id,
+          sourceHandleId: `o${input.index}`,
+          target: task.id,
+          targetHandleId: `i${i}`,
+        });
+        continue;
+      }
+
+      const sourceTask = flow.tasks.find(t => t.id === input.id);
+      if (sourceTask) {
+        edges.push({
+          id: `${input.id}-${task.id}`,
+          source: sourceTask.id,
+          sourceHandleId: `o${input.index}`,
+          target: task.id,
+          targetHandleId: `i${i}`,
+        });
+        continue;
+      }
+    }
+
+    const prevNode = prevNodes?.find((n: Node) => n.id === task.id);
+    nodes.push({
+      id: task.id,
+      position: prevNode ? prevNode.position : { x: nextX, y: nextY },
+      type: 'task',
+      data: {
+        name: task.task.name,
+        input: task.task.input,
+        output: task.task.output,
+      },
+    });
+
+    nextY = nextY + 100;
+  }
+
+  return { nodes, edges };
+};
