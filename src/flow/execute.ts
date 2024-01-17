@@ -1,15 +1,11 @@
-import { Flow } from './flow';
-import { Task } from './task';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Flow, FlowTask } from './flow';
 
 export interface Execution {
   id: string;
   value: any[];
   status: 'fulfilled' | 'executing' | 'pending' | 'rejected';
-  task: null | {
-    id: string;
-    task: Task;
-    input: { id: string; index: number }[];
-  };
+  task: null | FlowTask;
 }
 
 export type Executions = Record<string, Execution>;
@@ -50,10 +46,12 @@ export const createExecute = (flow: Flow) => {
         if (execution.task === null) break;
         const inputExecutions = execution.task.input.map(i => executions[i.id]);
         if (inputExecutions.every(i => i.status === 'fulfilled')) {
-          const args = execution.task.input.map(({ id, index }) => executions[id].value[index]);
+          const args = execution.task.input.map(
+            ({ id, sourceIndex }) => executions[id].value[sourceIndex],
+          );
 
           execution.status = 'executing';
-          execution.task.task.execute(args).then(outputs => {
+          execution.task.task.execute(args).then((outputs: any) => {
             execution.status = 'fulfilled';
             execution.value = outputs;
             execute();

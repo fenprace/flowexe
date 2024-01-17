@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Node } from 'reactflow';
 import { v4 } from 'uuid';
+import { stringify } from 'yaml';
 import { TASKS } from './task';
 
 export interface FlowConstant {
@@ -11,7 +12,7 @@ export interface FlowConstant {
 export interface FlowTask {
   id: string;
   task: any;
-  input: { id: string; index: number }[];
+  input: { id: string; sourceIndex: number; targetIndex: number }[];
 }
 
 export interface Flow {
@@ -21,9 +22,21 @@ export interface Flow {
 
 const constants = [{ id: v4(), value: 'Hello, world!' }];
 const tasks = [];
-tasks.push({ id: v4(), task: TASKS.toUpperCase, input: [{ id: constants[0].id, index: 0 }] });
-tasks.push({ id: v4(), task: TASKS.toLowerCase, input: [{ id: tasks[0].id, index: 0 }] });
-tasks.push({ id: v4(), task: TASKS.alert, input: [{ id: tasks[1].id, index: 0 }] });
+tasks.push({
+  id: v4(),
+  task: TASKS.toUpperCase,
+  input: [{ id: constants[0].id, sourceIndex: 0, targetIndex: 0 }],
+});
+tasks.push({
+  id: v4(),
+  task: TASKS.toLowerCase,
+  input: [{ id: tasks[0].id, sourceIndex: 0, targetIndex: 0 }],
+});
+tasks.push({
+  id: v4(),
+  task: TASKS.alert,
+  input: [{ id: tasks[1].id, sourceIndex: 0, targetIndex: 0 }],
+});
 
 export const INITIAL_FLOW = {
   constants,
@@ -55,13 +68,15 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
   nextY = 100;
   for (const task of flow.tasks) {
     for (let i = 0; i < task.input.length; i++) {
-      const input = task.input[i];
+      const input = task.input.find(inp => inp.targetIndex === i);
+      if (!input) continue;
+
       const constant = flow.constants.find(c => c.id === input.id);
       if (constant) {
         edges.push({
           id: `${input.id}-${task.id}`,
           source: constant.id,
-          sourceHandleId: `o${input.index}`,
+          sourceHandleId: `o${input.sourceIndex}`,
           target: task.id,
           targetHandleId: `i${i}`,
         });
@@ -73,7 +88,7 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
         edges.push({
           id: `${input.id}-${task.id}`,
           source: sourceTask.id,
-          sourceHandleId: `o${input.index}`,
+          sourceHandleId: `o${input.sourceIndex}`,
           target: task.id,
           targetHandleId: `i${i}`,
         });
@@ -97,4 +112,20 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
   }
 
   return { nodes, edges };
+};
+
+export const exportFlow = (flow: Flow) => {
+  const newFlow = {
+    constants: flow.constants,
+    tasks: flow.tasks.map(task => {
+      return {
+        ...task,
+        task: { type: task.task.name },
+      };
+    }),
+  };
+
+  console.log(stringify(newFlow));
+
+  alert('check console.log!');
 };

@@ -2,10 +2,20 @@
 import ReactFlow, { Background, Controls, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { createExecute } from './flow/execute';
+import { exportFlow } from './flow/flow';
+import { TASKS } from './flow/task';
 import './index.css';
 import { ConstantNode } from './nodes/ConstantNode';
 import { TaskNode } from './nodes/TaskNode';
-import { addConstantNode, onConnect, onEdgesChange, onNodesChange, useFlow } from './stores/flow';
+import {
+  addConstantNode,
+  addTaskNode,
+  onConnect,
+  onEdgesChange,
+  onNodesChange,
+  onNodesDelete,
+  useFlow,
+} from './stores/flow';
 
 const nodeTypes = {
   task: TaskNode,
@@ -27,6 +37,8 @@ export const Root = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        // onEdgesDelete={onEdgesDelete}
+        onNodesDelete={onNodesDelete}
       >
         <Background />
         <Controls />
@@ -44,6 +56,48 @@ export const Root = () => {
           >
             add constant
           </button>
+
+          <button
+            onClick={() => addTaskNode(TASKS.toLowerCase)}
+            style={{
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #000',
+              borderRadius: '0.25rem',
+              background: '#fff',
+            }}
+          >
+            add toLowerCase task
+          </button>
+
+          <button
+            onClick={() => addTaskNode(TASKS.toUpperCase)}
+            style={{
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #000',
+              borderRadius: '0.25rem',
+              background: '#fff',
+            }}
+          >
+            add toUpperCase task
+          </button>
+
+          <button
+            onClick={() => addTaskNode(TASKS.alert)}
+            style={{
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #000',
+              borderRadius: '0.25rem',
+              background: '#fff',
+            }}
+          >
+            add alert task
+          </button>
         </Panel>
 
         <Panel position="top-right">
@@ -58,6 +112,20 @@ export const Root = () => {
             }}
           >
             execute
+          </button>
+
+          <button
+            onClick={() => exportFlow(flow)}
+            style={{
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #000',
+              borderRadius: '0.25rem',
+              background: '#fff',
+            }}
+          >
+            export
           </button>
         </Panel>
       </ReactFlow>
