@@ -68,7 +68,7 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
   nextY = 100;
   for (const task of flow.tasks) {
     for (let i = 0; i < task.input.length; i++) {
-      const input = task.input.find(inp => inp.targetIndex === i);
+      const input = task.input[i];
       if (!input) continue;
 
       const constant = flow.constants.find(c => c.id === input.id);
@@ -76,9 +76,9 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
         edges.push({
           id: `${input.id}-${task.id}`,
           source: constant.id,
-          sourceHandleId: `o${input.sourceIndex}`,
+          sourceHandle: `o${input.sourceIndex}`,
           target: task.id,
-          targetHandleId: `i${i}`,
+          targetHandle: `i${input.targetIndex}`,
         });
         continue;
       }
@@ -88,9 +88,9 @@ export const flowToNodesAndEdges = (flow: Flow, prevNodes?: any) => {
         edges.push({
           id: `${input.id}-${task.id}`,
           source: sourceTask.id,
-          sourceHandleId: `o${input.sourceIndex}`,
+          sourceHandle: `o${input.sourceIndex}`,
           target: task.id,
-          targetHandleId: `i${i}`,
+          targetHandle: `i${input.targetIndex}`,
         });
         continue;
       }

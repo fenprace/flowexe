@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Handle, NodeProps, Position } from 'reactflow';
 
 export interface TaskNodeData {
@@ -6,9 +7,23 @@ export interface TaskNodeData {
   output: any[];
 }
 
+const calcuateOffset = (i: number, length: number) => {
+  if (length === 1) return '50%';
+  if (length === 2) return `${i * 33}%`;
+  return `${((i + 1) / (length + 1)) * 100}%`;
+};
+
 export const TaskNode = ({ data }: NodeProps<TaskNodeData>) => {
-  const inHandles = data.input.map((_, i) => {
-    return <Handle type="target" position={Position.Top} id={`i${i}`} key={i} />;
+  const inHandles = data.input.map(input => {
+    return (
+      <Handle
+        type="target"
+        position={Position.Top}
+        id={`i${input.index}`}
+        key={input.index}
+        style={{ left: calcuateOffset(input.index, data.input.length) }}
+      />
+    );
   });
 
   const outHandles = data.output.map((o, i) => {

@@ -12,6 +12,7 @@ import {
   addTaskNode,
   onConnect,
   onEdgesChange,
+  onEdgesDelete,
   onNodesChange,
   onNodesDelete,
   useFlow,
@@ -37,7 +38,7 @@ export const Root = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        // onEdgesDelete={onEdgesDelete}
+        onEdgesDelete={onEdgesDelete}
         onNodesDelete={onNodesDelete}
       >
         <Background />
@@ -83,6 +84,20 @@ export const Root = () => {
             }}
           >
             add toUpperCase task
+          </button>
+
+          <button
+            onClick={() => addTaskNode(TASKS.slice)}
+            style={{
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #000',
+              borderRadius: '0.25rem',
+              background: '#fff',
+            }}
+          >
+            add slice task
           </button>
 
           <button

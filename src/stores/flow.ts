@@ -185,14 +185,30 @@ export const onConnect = (connection: Connection) => {
         continue;
       }
 
-      const newInputs = [
-        ...task.input,
-        {
+      const newInputs = [];
+      let shouldCreateNewInput = true;
+      for (const input of task.input) {
+        // edges can have same source but different targets,
+        if (input.targetIndex === handleIdToIndex(connection.targetHandle)) {
+          newInputs.push({
+            id: connection.source as string,
+            sourceIndex: handleIdToIndex(connection.sourceHandle),
+            targetIndex: handleIdToIndex(connection.targetHandle),
+          });
+          shouldCreateNewInput = false;
+          continue;
+        }
+
+        newInputs.push(input);
+      }
+
+      if (shouldCreateNewInput) {
+        newInputs.push({
           id: connection.source as string,
           sourceIndex: handleIdToIndex(connection.sourceHandle),
           targetIndex: handleIdToIndex(connection.targetHandle),
-        },
-      ];
+        });
+      }
 
       newTasks.push({ ...task, input: newInputs });
     }
@@ -202,6 +218,7 @@ export const onConnect = (connection: Connection) => {
       tasks: newTasks,
     };
     const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
+    console.log(edges, nodes);
     return {
       flow,
       edges,
