@@ -82,20 +82,32 @@ export const onNodesDelete = (deleted: Node[]) => {
   const deletedIds = deleted.map(n => n.id);
 
   useFlow.setState(state => {
+    const newConstants = [];
+    for (const constant of state.flow.constants) {
+      if (deletedIds.includes(constant.id)) continue;
+      newConstants.push(constant);
+    }
+
     const newTasks = [];
     for (const task of state.flow.tasks) {
       if (deletedIds.includes(task.id)) continue;
 
+      const newInputs = [];
+      for (const input of task.input) {
+        if (deletedIds.includes(input.id)) continue;
+        newInputs.push(input);
+      }
+
       const newTask = {
         ...task,
-        input: task.input.filter(i => !deleted.find(n => n.id === i.id)),
+        input: newInputs,
       };
       newTasks.push(newTask);
     }
 
     const flow = {
       ...state.flow,
-      constants: state.flow.constants.filter(c => !deleted.find(n => n.id === c.id)),
+      constants: newConstants,
       tasks: newTasks,
     };
     const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
@@ -116,20 +128,24 @@ export const onEdgesDelete = (deleted: Edge[]) => {
   for (const edge of deleted) {
     useFlow.setState(state => {
       const newTasks = [];
-
       for (const task of state.flow.tasks) {
-        if (task.id !== edge.target) newTasks.push(task);
-        else {
-          const newInputs = [];
-          for (const input of task.input) {
-            if (
-              input.id !== edge.source ||
-              input.sourceIndex !== handleIdToIndex(edge.sourceHandle) ||
-              input.targetIndex !== handleIdToIndex(edge.targetHandle)
-            )
-              newInputs.push(input);
-          }
+        if (task.id !== edge.target) {
+          newTasks.push(task);
+          continue;
         }
+
+        const newInputs = [];
+        for (const input of task.input) {
+          if (
+            input.id === edge.source &&
+            input.sourceIndex === handleIdToIndex(edge.sourceHandle) &&
+            input.targetIndex === handleIdToIndex(edge.targetHandle)
+          )
+            continue;
+          newInputs.push(input);
+        }
+
+        newTasks.push({ ...task, input: newInputs });
       }
 
       const flow = {
@@ -164,22 +180,21 @@ export const onConnect = (connection: Connection) => {
   useFlow.setState(state => {
     const newTasks = [];
     for (const task of state.flow.tasks) {
-      if (task.id !== connection.target) newTasks.push(task);
-      else {
-        const newInputs = [
-          ...task.input,
-          {
-            id: connection.source as string,
-            sourceIndex: handleIdToIndex(connection.sourceHandle),
-            targetIndex: handleIdToIndex(connection.targetHandle),
-          },
-        ];
-
-        newTasks.push({
-          ...task,
-          input: newInputs,
-        });
+      if (task.id !== connection.target) {
+        newTasks.push(task);
+        continue;
       }
+
+      const newInputs = [
+        ...task.input,
+        {
+          id: connection.source as string,
+          sourceIndex: handleIdToIndex(connection.sourceHandle),
+          targetIndex: handleIdToIndex(connection.targetHandle),
+        },
+      ];
+
+      newTasks.push({ ...task, input: newInputs });
     }
 
     const flow = {
