@@ -7,9 +7,16 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
 } from 'reactflow';
-import { v4 } from 'uuid';
 import { create } from 'zustand';
-import { Flow, FlowConstant, INITIAL_FLOW, flowToNodesAndEdges } from '../flow/flow';
+import {
+  createFlowConstant,
+  createFlowTask,
+  removeInput,
+  removeInputByIds,
+  setInput,
+} from '../core/flow';
+import { DataType, Flow, FlowNode, FlowTask, TaskType } from '../core/types';
+import { INITIAL_FLOW, flowToNodesAndEdges } from '../flow/flow';
 
 export type FlowState = {
   nodes: Node[];
@@ -29,10 +36,7 @@ export const useFlow = create<FlowState>(() => {
 
 export const addConstantNode = () => {
   useFlow.setState(state => {
-    const flow = {
-      ...state.flow,
-      constants: [...state.flow.constants, { id: v4(), value: 'new constant' }],
-    };
+    const flow = [...state.flow, createFlowConstant('string', 'new constant')];
     const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
 
     return {
@@ -43,13 +47,9 @@ export const addConstantNode = () => {
   });
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const addTaskNode = (task: any) => {
+export const addTaskNode = (task: TaskType) => {
   useFlow.setState(state => {
-    const flow = {
-      ...state.flow,
-      tasks: [...state.flow.tasks, { id: v4(), task, input: [] }],
-    };
+    const flow = [...state.flow, createFlowTask(task)];
     const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
 
     return {
@@ -60,12 +60,12 @@ export const addTaskNode = (task: any) => {
   });
 };
 
-export const setConstantNode = (id: string, value: string) => {
+export const setConstantNode = <T extends DataType>(id: string, value: T) => {
   useFlow.setState(state => {
-    const newConstants: FlowConstant[] = [];
-    for (const constant of state.flow.constants) {
-      if (constant.id === id) newConstants.push({ ...constant, value });
-      else newConstants.push(constant);
+    const newFlow: Flow = [];
+    for (const flowNode of state.flow) {
+      if (flowNode.id === id) newFlow.push({ ...flowNode, value } as FlowNode);
+      else newFlow.push(flowNode);
     }
 
     const newNodes = [];
@@ -74,7 +74,7 @@ export const setConstantNode = (id: string, value: string) => {
       else newNodes.push(node);
     }
 
-    return { flow: { ...state.flow, constants: newConstants }, nodes: newNodes };
+    return { flow: newFlow, nodes: newNodes };
   });
 };
 
@@ -82,37 +82,20 @@ export const onNodesDelete = (deleted: Node[]) => {
   const deletedIds = deleted.map(n => n.id);
 
   useFlow.setState(state => {
-    const newConstants = [];
-    for (const constant of state.flow.constants) {
-      if (deletedIds.includes(constant.id)) continue;
-      newConstants.push(constant);
-    }
+    const newFlow = [];
+    for (const flowNode of state.flow) {
+      if (deletedIds.includes(flowNode.id)) continue;
 
-    const newTasks = [];
-    for (const task of state.flow.tasks) {
-      if (deletedIds.includes(task.id)) continue;
-
-      const newInputs = [];
-      for (const input of task.input) {
-        if (deletedIds.includes(input.id)) continue;
-        newInputs.push(input);
+      if (flowNode.nodeType === 'constant') newFlow.push(flowNode);
+      if (flowNode.nodeType === 'task') {
+        const newFlowTask = removeInputByIds(flowNode as FlowTask, deletedIds);
+        newFlow.push(newFlowTask);
       }
-
-      const newTask = {
-        ...task,
-        input: newInputs,
-      };
-      newTasks.push(newTask);
     }
 
-    const flow = {
-      ...state.flow,
-      constants: newConstants,
-      tasks: newTasks,
-    };
-    const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
+    const { edges, nodes } = flowToNodesAndEdges(newFlow, state.nodes);
     return {
-      flow,
+      flow: newFlow,
       edges,
       nodes,
     };
@@ -124,37 +107,34 @@ const handleIdToIndex = (handleId: null | undefined | string) => {
   return parseInt(handleId.slice(1));
 };
 
+const handleIdToTargetIndex = (handleId: null | undefined | string) => {
+  if (!handleId) return '0';
+  return handleId.slice(1);
+};
+
 export const onEdgesDelete = (deleted: Edge[]) => {
   for (const edge of deleted) {
     useFlow.setState(state => {
-      const newTasks = [];
-      for (const task of state.flow.tasks) {
-        if (task.id !== edge.target) {
-          newTasks.push(task);
+      const newFlow: Flow = [];
+      for (const flowNode of state.flow) {
+        if (flowNode.nodeType === 'constant') {
+          newFlow.push(flowNode);
           continue;
         }
 
-        const newInputs = [];
-        for (const input of task.input) {
-          if (
-            input.id === edge.source &&
-            input.sourceIndex === handleIdToIndex(edge.sourceHandle) &&
-            input.targetIndex === handleIdToIndex(edge.targetHandle)
-          )
-            continue;
-          newInputs.push(input);
+        if (flowNode.id !== edge.target) {
+          newFlow.push(flowNode);
+          continue;
         }
 
-        newTasks.push({ ...task, input: newInputs });
+        const targetIndex = handleIdToTargetIndex(edge.targetHandle);
+        const newFlowNode = removeInput(flowNode as FlowTask, targetIndex);
+        newFlow.push(newFlowNode);
       }
 
-      const flow = {
-        ...state.flow,
-        tasks: newTasks,
-      };
-      const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
+      const { edges, nodes } = flowToNodesAndEdges(newFlow, state.nodes);
       return {
-        flow,
+        newFlow,
         edges,
         nodes,
       };
@@ -178,49 +158,33 @@ export const onEdgesChange = (changes: EdgeChange[]) => {
 
 export const onConnect = (connection: Connection) => {
   useFlow.setState(state => {
-    const newTasks = [];
-    for (const task of state.flow.tasks) {
-      if (task.id !== connection.target) {
-        newTasks.push(task);
+    const newFlow: Flow = [];
+    for (const flowNode of state.flow) {
+      if (flowNode.nodeType === 'constant') {
+        newFlow.push(flowNode);
         continue;
       }
 
-      const newInputs = [];
-      let shouldCreateNewInput = true;
-      for (const input of task.input) {
-        // edges can have same source but different targets,
-        if (input.targetIndex === handleIdToIndex(connection.targetHandle)) {
-          newInputs.push({
-            id: connection.source as string,
-            sourceIndex: handleIdToIndex(connection.sourceHandle),
-            targetIndex: handleIdToIndex(connection.targetHandle),
-          });
-          shouldCreateNewInput = false;
-          continue;
-        }
-
-        newInputs.push(input);
+      if (flowNode.id !== connection.target) {
+        newFlow.push(flowNode);
+        continue;
       }
 
-      if (shouldCreateNewInput) {
-        newInputs.push({
-          id: connection.source as string,
-          sourceIndex: handleIdToIndex(connection.sourceHandle),
-          targetIndex: handleIdToIndex(connection.targetHandle),
-        });
-      }
+      const targetIndex = handleIdToTargetIndex(connection.targetHandle);
+      const sourceIndex = handleIdToIndex(connection.sourceHandle);
 
-      newTasks.push({ ...task, input: newInputs });
+      const newFlowNode = setInput(
+        flowNode as FlowTask,
+        targetIndex,
+        connection.source as string,
+        sourceIndex,
+      );
+      newFlow.push(newFlowNode);
     }
 
-    const flow = {
-      ...state.flow,
-      tasks: newTasks,
-    };
-    const { edges, nodes } = flowToNodesAndEdges(flow, state.nodes);
-    console.log(edges, nodes);
+    const { edges, nodes } = flowToNodesAndEdges(newFlow, state.nodes);
     return {
-      flow,
+      flow: newFlow,
       edges,
       nodes,
     };

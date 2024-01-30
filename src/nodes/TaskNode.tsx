@@ -14,19 +14,19 @@ const calcuateOffset = (i: number, length: number) => {
 };
 
 export const TaskNode = ({ data }: NodeProps<TaskNodeData>) => {
-  const inHandles = data.input.map(input => {
+  const inHandles = data.input.map((_input, i) => {
     return (
       <Handle
         type="target"
         position={Position.Top}
-        id={`i${input.index}`}
-        key={input.index}
-        style={{ left: calcuateOffset(input.index, data.input.length) }}
+        id={`i${i}`}
+        key={i}
+        style={{ left: calcuateOffset(i, data.input.length) }}
       />
     );
   });
 
-  const outHandles = data.output.map((o, i) => {
+  const outHandles = data.output.map((_output, i) => {
     return <Handle type="source" position={Position.Bottom} id={`o${i}`} key={i} />;
   });
 

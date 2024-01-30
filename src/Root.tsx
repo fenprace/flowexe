@@ -3,7 +3,6 @@ import ReactFlow, { Background, Controls, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { createExecute } from './flow/execute';
 import { exportFlow } from './flow/flow';
-import { TASKS } from './flow/task';
 import './index.css';
 import { ConstantNode } from './nodes/ConstantNode';
 import { TaskNode } from './nodes/TaskNode';
@@ -59,7 +58,7 @@ export const Root = () => {
           </button>
 
           <button
-            onClick={() => addTaskNode(TASKS.toLowerCase)}
+            onClick={() => addTaskNode('toLowerCase')}
             style={{
               marginLeft: '0.5rem',
               padding: '0.25rem 0.5rem',
@@ -73,7 +72,7 @@ export const Root = () => {
           </button>
 
           <button
-            onClick={() => addTaskNode(TASKS.toUpperCase)}
+            onClick={() => addTaskNode('toUpperCase')}
             style={{
               marginLeft: '0.5rem',
               padding: '0.25rem 0.5rem',
@@ -86,7 +85,7 @@ export const Root = () => {
             add toUpperCase task
           </button>
 
-          <button
+          {/* <button
             onClick={() => addTaskNode(TASKS.slice)}
             style={{
               marginLeft: '0.5rem',
@@ -112,7 +111,7 @@ export const Root = () => {
             }}
           >
             add alert task
-          </button>
+          </button> */}
         </Panel>
 
         <Panel position="top-right">
