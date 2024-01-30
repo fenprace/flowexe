@@ -8,9 +8,14 @@ export interface FlowConstant<T extends DataType> {
   valueType: T;
 }
 
+export interface FlowTaskInput {
+  id: string;
+  sourceIndex: number;
+}
+
 export interface FlowTask {
   id: string;
-  inputs: Record<string, { id: string; sourceIndex: number }>; // targetIndex => { id, sourceIndex }
+  inputs: Record<string, FlowTaskInput>; // targetIndex => { id, sourceIndex }
   nodeType: 'task';
   task: TaskType;
   conditions: { id: string; sourceIndex: number; targetIndex: number }[];
